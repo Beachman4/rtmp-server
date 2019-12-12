@@ -11,7 +11,6 @@ import (
 	"github.com/nareix/joy4/av/pubsub"
 	"github.com/nareix/joy4/format"
 	"github.com/nareix/joy4/format/rtmp"
-	"gopkg.in/resty.v1"
 	"net/http"
 	"sync"
 	"time"
@@ -245,7 +244,7 @@ func main() {
 			go func() {
 				time.Sleep(time.Second * 2)
 
-				resty.R().Get("http://35.238.243.208:8080/start-transcoding")
+				//resty.R().Get("http://35.238.243.208:8080/start-transcoding")
 			}()
 
 			avutil.CopyPackets(ch.que, conn)
