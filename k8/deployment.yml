@@ -55,3 +55,6 @@ spec:
             path: /healthz
             port: 8080
           timeoutSeconds: 1
+      - name: ffmpeg-loop
+        image: gcr.io/engineering-sandbox-228018/loop-ffmpeg:latest
+        imagePullPolicy: Always

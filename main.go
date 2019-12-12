@@ -215,7 +215,7 @@ func main() {
 	}
 
 	server.HandlePublish = func(conn *rtmp.Conn) {
-		streams, _ := conn.Streams()
+		//streams, _ := conn.Streams()
 
 		rwMutex.Lock()
 		fmt.Println("request string->", conn.URL.RequestURI())
@@ -229,32 +229,57 @@ func main() {
 		if ch == nil {
 			ch = &Channel{}
 			ch.que = pubsub.NewQueue()
-			ch.que.WriteHeader(streams)
 			channels[conn.URL.Path] = ch
 		} else {
+			fmt.Println("Channel is not nil")
 			ch = nil
 		}
 		rwMutex.Unlock()
 		if ch == nil {
+			fmt.Println("Channel is nil")
 			return
 		}
 
 
 		go func() {
+			time.Sleep(time.Second * 2)
 
-			go func() {
-				time.Sleep(time.Second * 2)
-
-				resty.R().Get("http://35.238.243.208:8080/start-transcoding")
-			}()
-
-			avutil.CopyPackets(ch.que, conn)
-
-			rwMutex.Lock()
-			delete(channels, conn.URL.Path)
-			rwMutex.Unlock()
-			ch.que.Close()
+			resty.R().Get("http://35.238.243.208:8080/start-transcoding")
 		}()
+
+		//go func() {
+		//	for {
+		//		c := conn.NetConn()
+		//		one := make([]byte, 1)
+		//		c.SetReadDeadline(time.Now())
+		//		if _, err := c.Read(one); err == io.EOF {
+		//			conn.Close()
+		//			c = nil
+		//			break;
+		//		} else {
+		//			c.SetReadDeadline(time.Now().Add(10 * time.Millisecond))
+		//		}
+		//
+		//		time.Sleep(time.Second * 3)
+		//	}
+		//}()
+
+		fmt.Println("Starting copy")
+
+		err := avutil.CopyFile(ch.que, conn)
+
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		fmt.Println("Stream is done....")
+
+		rwMutex.Lock()
+		delete(channels, conn.URL.Path)
+		rwMutex.Unlock()
+		ch.que.Close()
+
+		fmt.Println("Cleanup done")
 	}
 
 	router := httprouter.New()

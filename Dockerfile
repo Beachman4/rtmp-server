@@ -18,5 +18,6 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /go/src/github.com/flocasts/rtmp-server/rtmp-server ./rtmp-server
 
 EXPOSE 1935
+EXPOSE 8080
 
 ENTRYPOINT ["/app/rtmp-server"]
