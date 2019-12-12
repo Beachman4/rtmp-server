@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rtmp-server
+  namespace: ns-aylon-armstrong
+  labels:
+    app: rtmp-server
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 1935
+      protocol: TCP
+      targetPort: 1935
+      name: rtmp-port
+    - port: 8080
+      protocol: TCP
+      name: healthz-port
+  selector:
+    app: rtmp-server
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  namespace: ns-aylon-armstrong
+  name: rtmp-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rtmp-server
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: rtmp-server
+    spec:
+      containers:
+      - name: rtmp-server
+        image: gcr.io/engineering-sandbox-228018/rtmp-server:${TAG}
+        imagePullPolicy: Always
+        ports:
+          - containerPort: 8080
+          - containerPort: 1935
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          timeoutSeconds: 1
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          timeoutSeconds: 1
