@@ -3,10 +3,12 @@ FROM golang:1.11-alpine as builder
 WORKDIR /go/src/github.com/flocasts/rtmp-server
 
 ADD main.go main.go
+ADD Gopkg.toml Gopkg.toml
+ADD Gopkg.lock Gopkg.lock
 
-RUN apk update && apk add ca-certificates && rm -rf /var/cache/apk/* && apk add git
+RUN apk update && apk add dep ca-certificates && rm -rf /var/cache/apk/* && apk add git
 
-RUN go get -d ./...
+RUN dep ensure
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o rtmp-server
 

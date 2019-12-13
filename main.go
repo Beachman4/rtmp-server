@@ -11,7 +11,6 @@ import (
 	"github.com/nareix/joy4/av/pubsub"
 	"github.com/nareix/joy4/format"
 	"github.com/nareix/joy4/format/rtmp"
-	"gopkg.in/resty.v1"
 	"net/http"
 	"sync"
 	"time"
@@ -78,13 +77,13 @@ func (self *FrameDropper) ModifyPacket(pkt *av.Packet, streams []av.CodecData, v
 	return
 }
 
-func copyPackets(src av.PacketReader, rtmps []*rtmp.Conn) (err error) {
+func copyPackets(src av.PacketReader, rtmps []av.Muxer) (err error) {
 	var pkgChans []chan av.Packet
 	for _, conn := range rtmps {
 		pktChan := make(chan av.Packet)
 		pkgChans = append(pkgChans, pktChan)
 
-		go func(conn *rtmp.Conn, pkgChan <-chan av.Packet) {
+		go func(conn av.Muxer, pkgChan <-chan av.Packet) {
 			for pkt := range pkgChan {
 				if err = conn.WritePacket(pkt); err != nil {
 					return
@@ -110,6 +109,8 @@ func copyPackets(src av.PacketReader, rtmps []*rtmp.Conn) (err error) {
 	for {
 		select {
 		case pkt := <-sourceChan:
+			fmt.Println(fmt.Sprintf("size: %v", len(pkt.Data)))
+			fmt.Println(fmt.Sprintf("Time: %f", pkt.Time.Seconds()))
 			for _, pkgChan := range pkgChans {
 				pkgChan <- pkt
 			}
@@ -122,7 +123,7 @@ func copyPackets(src av.PacketReader, rtmps []*rtmp.Conn) (err error) {
 	}
 }
 
-func writeHeaders(src av.Demuxer, rtmps []*rtmp.Conn) (err error) {
+func writeHeaders(src av.Demuxer, rtmps []av.Muxer) (err error) {
 	var streams []av.CodecData
 	if streams, err = src.Streams(); err != nil {
 		return
@@ -224,6 +225,8 @@ func main() {
 
 		key := conn.URL.RequestURI()[1:]
 
+		fmt.Println(key)
+
 		ch := channels[conn.URL.Path]
 		if ch == nil {
 			ch = &Channel{}
@@ -243,7 +246,11 @@ func main() {
 		go func() {
 			time.Sleep(time.Second * 3)
 
-			resty.R().Get(fmt.Sprintf("http://35.238.243.208:8080/start-transcoding/%s", key))
+			//resty.R().Get(fmt.Sprintf("http://35.238.243.208:8080/start-transcoding/%s", key))
+		}()
+
+		go func() {
+
 		}()
 		//go func() {
 		//	for {
@@ -264,11 +271,40 @@ func main() {
 
 		fmt.Println("Starting copy")
 
-		err := avutil.CopyFile(ch.que, conn)
+		//restream, _ := rtmp.Dial("rtmp://a.rtmp.youtube.com/live2/5zbw-f7kv-y239-fdke")
+
+		rtmpConns := []av.Muxer{
+			//restream,
+			ch.que,
+		}
+
+		err := writeHeaders(conn, rtmpConns)
 
 		if err != nil {
 			fmt.Println(err)
 		}
+
+		err = copyPackets(conn, rtmpConns)
+
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		err = closeConnections([]*rtmp.Conn{
+			//restream,
+		})
+
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		err = ch.que.WriteTrailer()
+
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		//err := avutil.CopyFile(ch.que, conn)
 
 		fmt.Println("Stream is done....")
 
@@ -277,7 +313,7 @@ func main() {
 		rwMutex.Unlock()
 		ch.que.Close()
 
-		resty.R().Get(fmt.Sprintf("http://35.238.243.208:8080/stop-transcoding/%s", key))
+		//resty.R().Get(fmt.Sprintf("http://35.238.243.208:8080/stop-transcoding/%s", key))
 
 		fmt.Println("Cleanup done")
 	}
