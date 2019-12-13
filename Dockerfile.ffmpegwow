@@ -1,0 +1,11 @@
+FROM jrottenberg/ffmpeg:4.1-alpine
+
+RUN apk add bash
+
+WORKDIR /app
+
+ADD send-video-charlie.sh ./send-video-charlie.sh
+
+ADD wow2.mp4 ./wow2.mp4
+
+ENTRYPOINT ["./send-video-charlie.sh"]

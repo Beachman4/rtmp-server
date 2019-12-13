@@ -11,6 +11,7 @@ import (
 	"github.com/nareix/joy4/av/pubsub"
 	"github.com/nareix/joy4/format"
 	"github.com/nareix/joy4/format/rtmp"
+	"gopkg.in/resty.v1"
 	"net/http"
 	"sync"
 	"time"
@@ -220,10 +221,9 @@ func main() {
 		fmt.Println("request string->", conn.URL.RequestURI())
 		fmt.Println("request key->", conn.URL.Query().Get("key"))
 		//streamKey := conn.URL.Query().Get("key")
-		if conn.URL.RequestURI() != "/" + *sKey {
-			fmt.Println("Due to key not match, denied stream")
-			return //If key not match, deny stream
-		}
+
+		key := conn.URL.RequestURI()[1:]
+
 		ch := channels[conn.URL.Path]
 		if ch == nil {
 			ch = &Channel{}
@@ -241,15 +241,10 @@ func main() {
 
 
 		go func() {
-			time.Sleep(time.Second * 2)
+			time.Sleep(time.Second * 3)
 
-			resty.R().Get("http://35.238.243.208:8080/start-transcoding")
+			resty.R().Get(fmt.Sprintf("http://35.238.243.208:8080/start-transcoding/%s", key))
 		}()
-
-<<<<<<< HEAD
-				//resty.R().Get("http://35.238.243.208:8080/start-transcoding")
-			}()
-=======
 		//go func() {
 		//	for {
 		//		c := conn.NetConn()
@@ -274,7 +269,6 @@ func main() {
 		if err != nil {
 			fmt.Println(err)
 		}
->>>>>>> bca3cff5241abcde79e5e8a72f7dbf4313a9413f
 
 		fmt.Println("Stream is done....")
 
@@ -282,6 +276,8 @@ func main() {
 		delete(channels, conn.URL.Path)
 		rwMutex.Unlock()
 		ch.que.Close()
+
+		resty.R().Get(fmt.Sprintf("http://35.238.243.208:8080/stop-transcoding/%s", key))
 
 		fmt.Println("Cleanup done")
 	}

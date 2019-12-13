@@ -58,3 +58,6 @@ spec:
       - name: ffmpeg-loop
         image: gcr.io/engineering-sandbox-228018/loop-ffmpeg:latest
         imagePullPolicy: Always
+      - name: ffmpeg-loop-wow
+        image: gcr.io/engineering-sandbox-228018/ffmpeg-loop-wow:latest
+        imagePullPolicy: Always
